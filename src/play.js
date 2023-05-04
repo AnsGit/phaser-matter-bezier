@@ -11,21 +11,22 @@ class Play extends Phaser.Scene {
   }
 
   create() {
+    this.matter.world.setBounds(0, 0, 1024, 512, 40, true, true, true, true);
     this.matter.world.setGravity(0, 2);
 
     this.graphics = this.add.graphics();
 
-    this.path = { t: 0, vec: new Phaser.Math.Vector2() };
+    // this.path = { t: 0, vec: new Phaser.Math.Vector2() };
 
     console.log(this.matter);
 
     const startPoint = new Phaser.Math.Vector2(100, 100);
-    const controlPoint1 = new Phaser.Math.Vector2(220, 40);
+    const controlPoint1 = new Phaser.Math.Vector2(620, 200);
     const controlPoint2 = new Phaser.Math.Vector2(120, 470);
-    const endPoint = new Phaser.Math.Vector2(900, 350);
+    const endPoint = new Phaser.Math.Vector2(900, 400);
 
     this.curve = {
-      instance: new Phaser.Curves.CubicBezier(
+      base: new Phaser.Curves.CubicBezier(
         startPoint,
         controlPoint1,
         controlPoint2,
@@ -84,14 +85,14 @@ class Play extends Phaser.Scene {
       this.buildCurve();
     });
 
-    this.tweens.add({
-      targets: this.path,
-      t: 1,
-      ease: "Sine.easeInOut",
-      duration: 2000,
-      yoyo: true,
-      repeat: -1
-    });
+    // this.tweens.add({
+    //   targets: this.path,
+    //   t: 1,
+    //   ease: "Sine.easeInOut",
+    //   duration: 2000,
+    //   yoyo: true,
+    //   repeat: -1
+    // });
 
     this.ball = this.matter.add.image(200, 0, "ball");
 
@@ -110,7 +111,7 @@ class Play extends Phaser.Scene {
   }
 
   buildCurve() {
-    this.curve.points = this.curve.instance.getPoints(200);
+    this.curve.points = this.curve.base.getPoints(200);
 
     this.curve.rects.forEach((rect) => {
       rect && this.matter.world.remove(rect);
@@ -127,7 +128,7 @@ class Play extends Phaser.Scene {
       const distance = Phaser.Math.Distance.Between(nextPosition.x, nextPosition.y, x, y);
       const angle = Phaser.Math.Angle.Between(nextPosition.x, nextPosition.y, x, y);
 
-      const rect = this.matter.add.rectangle(x, y, distance, 8, {
+      const rect = this.matter.add.rectangle(x, y, distance, 2, {
         // friction: 0,
         // frictionAir: 0,
         // restitution: 0,
@@ -135,12 +136,7 @@ class Play extends Phaser.Scene {
         // inertia: Infinity,
         angle,
         isStatic: true,
-        collisionFilter: { category: this.curve.category },
-        render: {
-          strokeStyle: '#fff',
-          fillStyle: '#fff',
-          lineWidth: 2,
-        }
+        collisionFilter: { category: this.curve.category }
       });
 
       // console.log(rect);
@@ -155,14 +151,14 @@ class Play extends Phaser.Scene {
     //  Draw the curve through the points
     this.graphics.lineStyle(1, 0xff00ff, 1);
 
-    this.curve.instance.draw(this.graphics);
+    this.curve.base.draw(this.graphics);
 
-    //  Draw t
-    this.curve.instance.getPoint(this.path.t, this.path.vec);
-    // console.log(this.path.vec);
+    // //  Draw t
+    // this.curve.base.getPoint(this.path.t, this.path.vec);
+    // // console.log(this.path.vec);
 
-    this.graphics.fillStyle(0xffff00, 1);
-    this.graphics.fillCircle(this.path.vec.x, this.path.vec.y, 16);
+    // this.graphics.fillStyle(0xffff00, 1);
+    // this.graphics.fillCircle(this.path.vec.x, this.path.vec.y, 16);
   }
 }
 
