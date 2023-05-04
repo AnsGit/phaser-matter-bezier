@@ -7,23 +7,21 @@ class Play extends Phaser.Scene {
   path;
 
   preload() {
-    // this.load.spritesheet("dragcircle", "assets/sprites/dragcircle.png", {
-    //   frameWidth: 16
-    // });
-    this.load.spritesheet("ball", "assets/ball.png", { frameWidth: 40 });
+    this.load.image("ball", require("../assets/ball.png"), 40, 40);
   }
 
   create() {
+    this.matter.world.setGravity(0, 2);
+
     this.graphics = this.add.graphics();
 
     this.path = { t: 0, vec: new Phaser.Math.Vector2() };
 
-    console.log(this);
     console.log(this.matter);
 
     const startPoint = new Phaser.Math.Vector2(100, 100);
     const controlPoint1 = new Phaser.Math.Vector2(220, 40);
-    const controlPoint2 = new Phaser.Math.Vector2(510, 470);
+    const controlPoint2 = new Phaser.Math.Vector2(120, 470);
     const endPoint = new Phaser.Math.Vector2(900, 350);
 
     this.curve = {
@@ -74,9 +72,6 @@ class Play extends Phaser.Scene {
       gameObject.y = dragY;
 
       gameObject.data.get("vector").set(dragX, dragY);
-
-      //  Get 32 points equally spaced out along the curve
-      // this.points = this.curve.getSpacedPoints(32);
     });
 
     this.input.on("dragend", (pointer, gameObject) => {
@@ -102,15 +97,20 @@ class Play extends Phaser.Scene {
 
     this.ball.setCircle(20);
     this.ball.setFriction(0.005);
-    this.ball.setBounce(0.6);
-    // this.ball.setVelocityX(1);
-    // this.ball.setAngularVelocity(0.15);
+    this.ball.setBounce(0.8);
+    // this.ball.setInertia(1000);
+    // this.ball.setMass(0.5);
+    // this.ball.setDensity(0.1);
+    this.ball.setVelocityX(1);
+    this.ball.setAngularVelocity(0.15);
+
+    console.log(this.ball);
 
     this.buildCurve();
   }
 
   buildCurve() {
-    this.curve.points = this.curve.instance.getPoints(100);
+    this.curve.points = this.curve.instance.getPoints(200);
 
     this.curve.rects.forEach((rect) => {
       rect && this.matter.world.remove(rect);
@@ -143,52 +143,10 @@ class Play extends Phaser.Scene {
         }
       });
 
-      console.log(rect);
+      // console.log(rect);
 
       return rect;
     })
-
-    // const options = {
-    //   // friction: 0,
-    //   // frictionAir: 0,
-    //   // restitution: 0,
-    //   // ignoreGravity: true,
-    //   // inertia: Infinity,
-    //   // angle: 0,
-    //   isStatic: true,
-    //   collisionFilter: { category: this.curve.category }
-    // };
-
-    // let nextPosition = {};
-    
-    // this.curve.points.forEach(({x, y}, i) => {
-    //   if (i === this.curve.points.length - 1) return;
-
-    //   nextPosition.x = this.curve.points[i + 1].x;
-    //   nextPosition.y = this.curve.points[i + 1].y;
-
-    //   const distance = Phaser.Math.Distance.Between(nextPosition.x, nextPosition.y, x, y);
-
-    //   const angle = Phaser.Math.Angle.Between(nextPosition.x, nextPosition.y, x, y);
-
-    //   const rect = this.curve.rects[i];
-    //   console.log(rect);
-      
-    //   // rect.set('scale', { x: distance, y: 1 });
-    //   // rect.set('angle', angle);
-    //   // rect.scale(distance, 1);
-    //   // rect.setAngle(angle);
-    //   // rect.scale = { x: distance, y: 1 };
-    //   // rect.vertices[0].x = x;
-    //   // rect.vertices[3].x = x;
-    //   // rect.vertices[2].x = x + distance;
-    //   // rect.vertices[1].x = x + distance;
-    //   // rect.angle = angle;
-    //   // console.log(rect);
-
-    //   // const rect = this.matter.add.rectangle(x, y, distance, 8, options);
-    //   // this.curve.rects.push(rect);
-    // });
   }
 
   update() {

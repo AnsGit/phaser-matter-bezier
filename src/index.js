@@ -8,7 +8,7 @@ const config = {
   width: 1024,
   height: 512,
   backgroundColor: "#2d2d2d",
-  parent: "phaser-example",
+  parent: "game-container",
   physics: {
     default: "matter",
     matter: {}
