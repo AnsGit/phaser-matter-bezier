@@ -53,9 +53,9 @@ class Play extends Phaser.Scene {
         // Left part
         this.matter.add.rectangle(
           config.SLOPE.POINTS.START.x/2,
-          config.SLOPE.POINTS.START.y,
+          config.SLOPE.POINTS.START.y + 20,
           config.SLOPE.POINTS.START.x,
-          2,
+          40,
           {
             isStatic: true,
             collisionFilter: { category: this.surface.category }
@@ -64,9 +64,9 @@ class Play extends Phaser.Scene {
         // Right part
         this.matter.add.rectangle(
           config.SLOPE.POINTS.END.x + (config.WIDTH - config.SLOPE.POINTS.END.x)/2,
-          config.SLOPE.POINTS.END.y,
+          config.SLOPE.POINTS.END.y + 20,
           config.WIDTH - config.SLOPE.POINTS.END.x,
-          2,
+          40,
           {
             isStatic: true,
             collisionFilter: { category: this.surface.category }
