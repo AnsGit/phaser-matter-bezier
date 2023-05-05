@@ -1,71 +1,146 @@
 import Phaser from "phaser";
+import _ from "underscore";
+
+import config from "./config.js";
 
 class Play extends Phaser.Scene {
   graphics;
-  points;
+  // points;
   curve;
-  path;
+  // path;
 
   preload() {
     this.load.image("ball", require("../assets/ball.png"), 40, 40);
   }
 
   create() {
-    this.matter.world.setBounds(0, 0, 1024, 512, 40, true, true, true, true);
+    console.log(this.matter);
+
+    this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 40, true, true, true, true);
     this.matter.world.setGravity(0, 2);
 
     this.graphics = this.add.graphics();
 
-    // this.path = { t: 0, vec: new Phaser.Math.Vector2() };
+    this.createSurface();
+    this.createPlain();
 
-    console.log(this.matter);
+    this.createSlope();
+    this.createBall();
 
-    const startPoint = new Phaser.Math.Vector2(100, 100);
-    const controlPoint1 = new Phaser.Math.Vector2(620, 200);
-    const controlPoint2 = new Phaser.Math.Vector2(120, 470);
-    const endPoint = new Phaser.Math.Vector2(900, 400);
+    this.buildSlope();
+    this.subscribeSlope();
 
-    this.curve = {
-      base: new Phaser.Curves.CubicBezier(
-        startPoint,
-        controlPoint1,
-        controlPoint2,
-        endPoint
+
+    // this.tweens.add({
+    //   targets: this.path,
+    //   t: 1,
+    //   ease: "Sine.easeInOut",
+    //   duration: 2000,
+    //   yoyo: true,
+    //   repeat: -1
+    // });
+  }
+
+  createSurface() {
+    this.surface = {
+      category: this.matter.world.nextCategory()
+    }
+  }
+
+  createPlain() {
+    this.plain = {
+      rects: [
+        // Left part
+        this.matter.add.rectangle(
+          config.SLOPE.POINTS.START.x/2,
+          config.SLOPE.POINTS.START.y,
+          config.SLOPE.POINTS.START.x,
+          2,
+          {
+            isStatic: true,
+            collisionFilter: { category: this.surface.category }
+          }
+        ),
+        // Right part
+        this.matter.add.rectangle(
+          config.SLOPE.POINTS.END.x + (config.WIDTH - config.SLOPE.POINTS.END.x)/2,
+          config.SLOPE.POINTS.END.y,
+          config.WIDTH - config.SLOPE.POINTS.END.x,
+          2,
+          {
+            isStatic: true,
+            collisionFilter: { category: this.surface.category }
+          }
+        )
+      ]
+    };
+  }
+
+  createSlope() {
+    const { POINTS } = config.SLOPE;
+
+    this.slope = {
+      curve: new Phaser.Curves.CubicBezier(
+        // Start point
+        new Phaser.Math.Vector2(POINTS.START.x, POINTS.START.y),
+        // Control point
+        ...POINTS.CONTROL.map( p => new Phaser.Math.Vector2(p.x, p.y) ),
+        // End point
+        new Phaser.Math.Vector2(POINTS.END.x, POINTS.END.y)
       ),
-      category: this.matter.world.nextCategory(),
+      interactive: { points: null },
       points: [],
       rects: []
     };
 
-    console.log(this.curve);
+    this.slope.interactive.points = _.range(4).map((i) => {
+      const basePoint = this.slope.curve[`p${i}`];
+      const { x, y } = basePoint;
 
-    const point0 = this.add
-      .image(startPoint.x, startPoint.y, "dragcircle", 0)
-      .setInteractive();
-    const point1 = this.add
-      .image(endPoint.x, endPoint.y, "dragcircle", 0)
-      .setInteractive();
-    const point2 = this.add
-      .image(controlPoint1.x, controlPoint1.y, "dragcircle", 2)
-      .setInteractive();
-    const point3 = this.add
-      .image(controlPoint2.x, controlPoint2.y, "dragcircle", 2)
-      .setInteractive();
+      const isControl = [1, 2].includes(i);
 
-    point0.setData("vector", startPoint);
-    point1.setData("vector", endPoint);
-    point2.setData("vector", controlPoint1);
-    point3.setData("vector", controlPoint2);
+      let color, radius;
 
-    point0.setData("isControl", false);
-    point1.setData("isControl", false);
-    point2.setData("isControl", true);
-    point3.setData("isControl", true);
+      if (isControl) {
+        color = config.SLOPE.CONTROL.COLOR;
+        radius = config.SLOPE.CONTROL.POINT.RADIUS;
+      }
+      else {
+        color = config.SLOPE.COLOR;
+        radius = config.SLOPE.POINT.RADIUS;
+      }
 
-    this.input.setDraggable([point0, point1, point2, point3]);
+      const point = this.add
+        .circle(x, y, radius, color)
+        .setData("vector", basePoint)
+        .setInteractive();
+      
+      return point;
+    });
+  }
+
+  createBall() {
+    this.ball = this.matter.add.image(config.BALL.x, config.BALL.y, "ball", 1);
+
+    this.ball.setCircle(20);
+    // this.ball.setSlop(20);
+    this.ball.setFriction(0.06);
+    this.ball.setFrictionAir(0.0001);
+    this.ball.setBounce(0.8);
+    // this.ball.setInertia(1000);
+    this.ball.setMass(0.1);
+    this.ball.setDensity(0.0000008);
+    this.ball.setVelocityX(1);
+  }
+
+  subscribeSlope() {
+    this.input.setDraggable([
+      this.slope.interactive.points[1],
+      this.slope.interactive.points[2]
+    ]);
 
     this.input.on("dragstart", (pointer, gameObject) => {
-      gameObject.setFrame(1);
+      // ...
     });
 
     this.input.on("drag", (pointer, gameObject, dragX, dragY) => {
@@ -76,54 +151,26 @@ class Play extends Phaser.Scene {
     });
 
     this.input.on("dragend", (pointer, gameObject) => {
-      if (gameObject.data.get("isControl")) {
-        gameObject.setFrame(2);
-      } else {
-        gameObject.setFrame(0);
-      }
-
-      this.buildCurve();
+      // ...
+      this.buildSlope();
     });
-
-    // this.tweens.add({
-    //   targets: this.path,
-    //   t: 1,
-    //   ease: "Sine.easeInOut",
-    //   duration: 2000,
-    //   yoyo: true,
-    //   repeat: -1
-    // });
-
-    this.ball = this.matter.add.image(200, 0, "ball");
-
-    this.ball.setCircle(20);
-    this.ball.setFriction(0.005);
-    this.ball.setBounce(0.8);
-    // this.ball.setInertia(1000);
-    // this.ball.setMass(0.5);
-    // this.ball.setDensity(0.1);
-    this.ball.setVelocityX(1);
-    this.ball.setAngularVelocity(0.15);
-
-    console.log(this.ball);
-
-    this.buildCurve();
   }
 
-  buildCurve() {
-    this.curve.points = this.curve.base.getPoints(200);
+  buildSlope() {
+    this.slope.points = this.slope.curve.getPoints(200);
 
-    this.curve.rects.forEach((rect) => {
+    this.slope.rects.forEach((rect) => {
       rect && this.matter.world.remove(rect);
     });
 
     let nextPosition = {};
 
-    this.curve.rects = this.curve.points.map(({ x, y }, i) => {
-      if (i === this.curve.points.length - 1) return;
+    // Slope rects
+    this.slope.rects = this.slope.points.map(({ x, y }, i) => {
+      if (i === this.slope.points.length - 1) return;
 
-      nextPosition.x = this.curve.points[i + 1].x;
-      nextPosition.y = this.curve.points[i + 1].y;
+      nextPosition.x = this.slope.points[i + 1].x;
+      nextPosition.y = this.slope.points[i + 1].y;
 
       const distance = Phaser.Math.Distance.Between(nextPosition.x, nextPosition.y, x, y);
       const angle = Phaser.Math.Angle.Between(nextPosition.x, nextPosition.y, x, y);
@@ -136,29 +183,46 @@ class Play extends Phaser.Scene {
         // inertia: Infinity,
         angle,
         isStatic: true,
-        collisionFilter: { category: this.curve.category }
+        collisionFilter: { category: this.surface.category }
       });
 
       // console.log(rect);
 
       return rect;
-    })
+    });
+  }
+
+  drawGround() {
+    this.graphics.beginPath();
+
+    this.graphics.fillStyle(config.GROUND.COLOR);
+    this.graphics.lineStyle(8, 'transparent');
+
+    // Stroke slope
+    this.slope.curve.draw(this.graphics);
+
+    // Stroke ground
+    this.graphics.lineTo(config.WIDTH, config.SLOPE.POINTS.END.y);
+    this.graphics.lineTo(config.WIDTH, config.HEIGHT);
+    this.graphics.lineTo(0, config.HEIGHT);
+    this.graphics.lineTo(0, config.SLOPE.POINTS.START.y);
+
+    this.graphics.closePath();
+    this.graphics.fillPath();
+
+    // Draw slope over the ground
+    this.graphics.lineStyle(config.SLOPE.LINE.WIDTH, config.SLOPE.COLOR);
+    this.slope.curve.draw(this.graphics);
   }
 
   update() {
     this.graphics.clear();
 
-    //  Draw the curve through the points
-    this.graphics.lineStyle(1, 0xff00ff, 1);
-
-    this.curve.base.draw(this.graphics);
+    this.drawGround();
 
     // //  Draw t
-    // this.curve.base.getPoint(this.path.t, this.path.vec);
+    // this.slope.curve.getPoint(this.path.t, this.path.vec);
     // // console.log(this.path.vec);
-
-    // this.graphics.fillStyle(0xffff00, 1);
-    // this.graphics.fillCircle(this.path.vec.x, this.path.vec.y, 16);
   }
 }
 

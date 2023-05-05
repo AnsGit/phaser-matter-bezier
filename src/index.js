@@ -1,13 +1,15 @@
 import "./styles.css";
 
 import Phaser from "phaser";
+
+import config from "./config.js";
 import Play from "./play.js";
 
-const config = {
+const props = {
   type: Phaser.AUTO,
-  width: 1024,
-  height: 512,
-  backgroundColor: "#2d2d2d",
+  width: config.WIDTH,
+  height: config.HEIGHT,
+  backgroundColor: config.BACKGROUND_COLOR,
   parent: "game-container",
   physics: {
     default: "matter",
@@ -16,4 +18,4 @@ const config = {
   scene: [Play]
 };
 
-new Phaser.Game(config);
+new Phaser.Game(props);
