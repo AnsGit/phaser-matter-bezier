@@ -204,6 +204,7 @@ class Play extends Phaser.Scene {
         title: $('<div>', { class: 'title', text: 'лучшее время' }),
         value: $('<div>', { class: 'value', text: '0.00' }),
         timestamp: { initial: null, current: null },
+        duration: 0,
         timeout: null
       },
       current: {
@@ -211,6 +212,7 @@ class Play extends Phaser.Scene {
         title: $('<div>', { class: 'title', text: 'текущее время' }),
         value: $('<div>', { class: 'value', text: '0.00' }),
         timestamp: { initial: null, current: null },
+        duration: 0,
         timeout: null
       }
     };
@@ -247,10 +249,10 @@ class Play extends Phaser.Scene {
       timestamp = counter.timestamp; 
     }
     
-    const duration = (timestamp.current - timestamp.initial)/1000;
+    counter.duration = (timestamp.current - timestamp.initial)/1000;
     
     counter.timestamp = timestamp;
-    counter.value.text(duration.toFixed(2));
+    counter.value.text(counter.duration.toFixed(2));
   }
 
   stopCounter(type = 'current') {
@@ -269,6 +271,8 @@ class Play extends Phaser.Scene {
 
     counter.timestamp.initial = 0;
     counter.timestamp.current = 0;
+    counter.duration = 0;
+
     this.updateCounter(type);
   }
 
@@ -341,7 +345,6 @@ class Play extends Phaser.Scene {
     });
 
     this.input.on("dragend", (pointer, gameObject) => {
-      // ...
       this.buildSlope();
     });
   }

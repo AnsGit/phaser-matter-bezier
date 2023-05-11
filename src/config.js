@@ -29,7 +29,7 @@ const config = {
     COLOR: '0x320E3F'
   },
   BALL: {
-    x: 82,
+    x: 102,
     y: 160
   }
 };

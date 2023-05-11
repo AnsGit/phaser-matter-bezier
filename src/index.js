@@ -18,4 +18,4 @@ const props = {
   scene: [Play]
 };
 
-new Phaser.Game(props);
+const game = new Phaser.Game(props);
