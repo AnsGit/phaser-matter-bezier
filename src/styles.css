@@ -3,4 +3,92 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
+  margin: 0;
+}
+
+#game-container {
+  position: relative;
+}
+
+.counters {
+  position: absolute;
+  right: 116px;
+  bottom: 210px;
+  display: flex;
+  flex-direction: column;
+}
+
+.counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 90px;
+  background: #765FDE;
+  border-radius: 20px;
+  color: #FFFFFF;
+  transition: opacity 0.5s;
+}
+
+.counter > .title {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.counter > .value {
+  font-size: 48px;
+  line-height: 45px;
+  font-weight: 700;
+}
+
+.counter:not(:last-child) {
+  margin-bottom: 16px;
+}
+
+.buttons {
+  position: absolute;
+  display: flex;
+  left: 614px;
+  bottom: 50px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+.button:not(.disabled):hover {
+  background-color: #efe9e9;
+  cursor: pointer;
+}
+
+.button.reset {
+  width: 48px;
+  margin-right: 16px;
+  background-image: url('../assets/icon-reset.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.button.run {
+  font-size: 20px;
+  line-height: 28px;
+  color: #765FDE;
+  padding: 0 20px;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.disabled {
+  pointer-events: none;
 }

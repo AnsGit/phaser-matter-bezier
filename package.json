@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "assets": "^3.0.1",
+    "jquery": "^3.6.4",
     "phaser": "3.60.0",
     "underscore": "^1.13.6"
   },
