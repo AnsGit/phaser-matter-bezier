@@ -15,7 +15,7 @@ class Play extends Phaser.Scene {
     this.parent = $(`#${this.registry.parent.config.parent}`);
 
     this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 40, true, true, true, true);
-    this.matter.world.setGravity(0, 2);
+    this.matter.world.setGravity(0, 1.5);
 
     this.graphics = this.add.graphics();
 
