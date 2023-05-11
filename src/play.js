@@ -19,9 +19,6 @@ class Play extends Phaser.Scene {
 
     this.graphics = this.add.graphics();
 
-    this.createSurface();
-    this.createPlain();
-
     this.createSlope();
     this.createBall();
 
@@ -42,41 +39,6 @@ class Play extends Phaser.Scene {
     // });
   }
 
-  createSurface() {
-    this.surface = {
-      category: this.matter.world.nextCategory()
-    }
-  }
-
-  createPlain() {
-    this.plain = {
-      rects: [
-        // Left part
-        this.matter.add.rectangle(
-          config.SLOPE.POINTS.START.x/2,
-          config.SLOPE.POINTS.START.y + 20,
-          config.SLOPE.POINTS.START.x,
-          40,
-          {
-            isStatic: true,
-            collisionFilter: { category: this.surface.category }
-          }
-        ),
-        // Right part
-        this.matter.add.rectangle(
-          config.SLOPE.POINTS.END.x + (config.WIDTH - config.SLOPE.POINTS.END.x)/2,
-          config.SLOPE.POINTS.END.y + 20,
-          config.WIDTH - config.SLOPE.POINTS.END.x,
-          40,
-          {
-            isStatic: true,
-            collisionFilter: { category: this.surface.category }
-          }
-        )
-      ]
-    };
-  }
-
   createSlope() {
     const { POINTS } = config.SLOPE;
 
@@ -90,6 +52,7 @@ class Play extends Phaser.Scene {
         new Phaser.Math.Vector2(POINTS.END.x, POINTS.END.y)
       ),
       interactive: { points: null },
+      ground: null,
       points: [],
       rects: []
     };
@@ -140,7 +103,40 @@ class Play extends Phaser.Scene {
   }
 
   buildSlope() {
-    this.slope.points = this.slope.curve.getPoints(200);
+    const { POINTS } = config.SLOPE;
+
+    const Body = Phaser.Physics.Matter.Matter.Body;
+    const Bodies = Phaser.Physics.Matter.Matter.Bodies;
+
+    this.slope.points = this.slope.curve.getPoints(100);
+
+    this.slope.ground && this.matter.world.remove(this.slope.ground);
+
+    this.slope.ground = Bodies.fromVertices(
+      config.WIDTH - 0,
+      config.HEIGHT - POINTS.START.y,
+      [
+        new Phaser.Math.Vector2(0, config.HEIGHT),
+        new Phaser.Math.Vector2(0, POINTS.START.y),
+        ...this.slope.points,
+        new Phaser.Math.Vector2(config.WIDTH, POINTS.END.y),
+        new Phaser.Math.Vector2(config.WIDTH, config.HEIGHT)
+      ],
+      { isStatic: true },
+      true
+    );
+
+    Body.setPosition(this.slope.ground, {
+      x: config.WIDTH - this.slope.ground.bounds.min.x,
+      y: POINTS.START.y + (config.HEIGHT - POINTS.START.y) - this.slope.ground.bounds.max.y + (config.HEIGHT - POINTS.START.y),
+      y: config.HEIGHT - this.slope.ground.bounds.max.y + (config.HEIGHT - POINTS.START.y),
+    });
+
+    this.matter.world.add(this.slope.ground)
+
+    return;
+    
+    this.slope.points = this.slope.curve.getPoints(100);
 
     this.slope.rects.forEach((rect) => {
       rect && this.matter.world.remove(rect);
@@ -169,6 +165,12 @@ class Play extends Phaser.Scene {
         collisionFilter: { category: this.surface.category }
       });
 
+      // rect.density = 0
+      // rect.friction = 0.11
+      // rect.frictionStatic = 0
+      // rect.inertia = 1000
+      // rect.inverseInertia = 100000
+
       // console.log(rect);
 
       return rect;
@@ -180,13 +182,16 @@ class Play extends Phaser.Scene {
 
     this.ball.setCircle(20);
     // this.ball.setSlop(20);
-    this.ball.setFriction(0.06);
+    this.ball.setFriction(0.16);
     this.ball.setFrictionAir(0.0001);
-    this.ball.setBounce(0.8);
+    this.ball.setBounce(0.9);
     // this.ball.setInertia(1000);
     this.ball.setMass(0.1);
     this.ball.setDensity(0.0000008);
     this.ball.setVelocityX(1);
+
+    // const body = this.ball.body;
+    // this.matter.body.setInertia(body, 0.1);
 
     this.ball.setStatic(true);
   }
