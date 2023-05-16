@@ -14,8 +14,21 @@ class Play extends Phaser.Scene {
   create() {
     this.parent = $(`#${this.registry.parent.config.parent}`);
 
-    this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 40, true, true, true, true);
-    this.matter.world.setGravity(0, 1.5);
+    this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 50, true, true, true, true);
+    this.matter.world.setGravity(0, 1);
+
+    // this.matter.world.runner.isFixed = true;
+    this.matter.world.autoUpdate = false;
+    // this.acc = 0;
+
+    // console.log(Phaser);
+    // console.log(this.matter);
+    // console.log(this.matter.systems.cache.game);
+    // console.log(this.matter.systems.cache.game.config);
+    // console.log(this.matter.systems.cache.game.config.seed);
+    // console.log(Phaser.Physics.Matter);
+    // console.log(Phaser.Physics.Matter.Matter.Common);
+    // Phaser.Physics.Matter.Matter.Common._seed = 12345678;
 
     this.graphics = this.add.graphics();
 
@@ -25,7 +38,7 @@ class Play extends Phaser.Scene {
     this.createCounters();
     this.createButtons();
 
-    this.buildSlope();
+    this.build();
     this.subscribe();
 
 
@@ -81,6 +94,18 @@ class Play extends Phaser.Scene {
 
       return point;
     });
+
+    // console.log(this.slope.curve.getTangent(0.5));
+    // console.log(this.slope.curve.getPoint(0.5));
+    // getTangent(t [, out])
+
+    // const line = new Phaser.Curves.Line(
+    //   new Phaser.Math.Vector2(POINTS.START.x, POINTS.START.y),
+    //   new Phaser.Math.Vector2(POINTS.END.x, POINTS.END.y)
+    // );
+
+    // console.log(line.getPoint(0.4));
+    // console.log(line.getPoint(0.6));
   }
 
   resetSlope() {
@@ -103,13 +128,14 @@ class Play extends Phaser.Scene {
   }
 
   buildSlope() {
+    // 1 WAY
     const { POINTS } = config.SLOPE;
 
     const Body = Phaser.Physics.Matter.Matter.Body;
     const Bodies = Phaser.Physics.Matter.Matter.Bodies;
 
     this.slope.points = this.slope.curve.getPoints(100);
-
+    
     this.slope.ground && this.matter.world.remove(this.slope.ground);
 
     this.slope.ground = Bodies.fromVertices(
@@ -136,6 +162,8 @@ class Play extends Phaser.Scene {
 
     return;
     
+
+    // 2 WAY
     this.slope.points = this.slope.curve.getPoints(100);
 
     this.slope.rects.forEach((rect) => {
@@ -178,9 +206,10 @@ class Play extends Phaser.Scene {
   }
 
   createBall() {
-    this.ball = this.matter.add.image(config.BALL.x, config.BALL.y, "ball", 1);
+    this.ball = this.matter.add.image(0, 0, "ball", 1);
+    // console.log(this.ball);
 
-    this.ball.setCircle(20);
+    this.ball.setCircle(config.BALL.SIZE);
     // this.ball.setSlop(20);
     this.ball.setFriction(0.16);
     this.ball.setFrictionAir(0.0001);
@@ -197,8 +226,22 @@ class Play extends Phaser.Scene {
   }
 
   resetBall() {
-    this.ball.setPosition(config.BALL.x, config.BALL.y);
+    this.buildBall();
     this.ball.setStatic(true);
+  }
+
+  buildBall() {
+    const [ p0, p1 ] = this.slope.points.slice(0, 2);
+
+    // const p0 = this.slope.curve.getPoint(0.05);
+    // const p1 = this.slope.curve.getPoint(0.06);
+
+    const angle = Phaser.Math.Angle.Between(p0.x, p0.y, p1.x, p1.y);
+
+    const x = p0.x + config.BALL.SIZE * Math.sin(angle);
+    const y = p0.y - config.BALL.SIZE * Math.cos(angle);
+
+    this.ball.setPosition(x, y);
   }
 
   createCounters() {
@@ -300,35 +343,95 @@ class Play extends Phaser.Scene {
     this.parent.append(this.buttons.view);
   }
 
+  disableButtons() {
+    this.buttons.view.addClass('disabled');
+  }
+
+  enableButtons() {
+    this.buttons.view.removeClass('disabled');
+  }
+
+  reset() {
+    this.runnning = false;
+
+    this.resetSlope();
+    this.resetBall();
+
+    this.resetCounter('current');
+    
+    this.buttons.reset.view.addClass('disabled');
+    this.buttons.run.view.removeClass('disabled');
+    this.input.enabled = true;
+  }
+
+  run() {
+    // console.log(this.matter.systems.cache.game.config.seed)
+    this.runnning = true;
+    this.finished = false;
+
+    this.runCounter('current');
+
+    this.buttons.reset.view.addClass('disabled');
+    this.buttons.run.view.addClass('disabled');
+    this.input.enabled = false;
+
+    this.ball.setStatic(false);
+    // this.ball.setVelocityY(5);
+    // this.ball.setAngularVelocity(0.1);
+
+    // let i = 0;
+    // this.ball.setOnCollideEnd((...args) => {
+    //   // console.log(args);
+    //   console.log(i++);
+    //   // console.log(this.ball.body.angularSpeed);
+    // })
+
+    // let i = 0;
+    // this.ball.setSleepEndEvent((...args) => {
+    //   // console.log(args);
+    //   console.log(i++);
+    // })
+    
+    this.buttons.reset.view.removeClass('disabled');
+    // console.log('STOPED');
+  }
+
+  stop() {
+    this.finished = true;
+
+    this.stopCounter('current');
+
+    const isNewBestResult = (
+      !this.saved ||
+      (this.counters.current.duration < this.counters.best.duration)
+    );
+
+    if (isNewBestResult) {
+      this.saved = true;
+      this.updateCounter('best', this.counters.current.timestamp);
+    }
+
+    this.counters.best.view.removeClass('hidden');
+  }
+
+  build() {
+    this.buildSlope();
+    this.buildBall();
+  }
+
   subscribeButtons() {
     // RESET SLOPE AND BALL
     this.buttons.reset.view.on('click', (e) => {
-      console.log('RESETED');
+      // console.log('RESETED');
 
-      this.resetSlope();
-      this.resetBall();
-
-      this.resetCounter('current');
-      
-      this.buttons.reset.view.addClass('disabled');
-      this.buttons.run.view.removeClass('disabled');
-      this.input.enabled = true;
+      this.reset();
     });
 
     // RUN BALL
     this.buttons.run.view.on('click', (e) => {
-      console.log('STARTED');
+      // console.log('STARTED');
 
-      this.runCounter('current');
-
-      this.buttons.reset.view.addClass('disabled');
-      this.buttons.run.view.addClass('disabled');
-      this.input.enabled = false;
-
-      this.ball.setStatic(false);
-      
-      this.buttons.reset.view.removeClass('disabled');
-      console.log('STOPED');
+      this.run();
     });
   }
 
@@ -338,19 +441,29 @@ class Play extends Phaser.Scene {
       this.slope.interactive.points[2]
     ]);
 
+    this.input.on
+
     this.input.on("dragstart", (pointer, gameObject) => {
-      // ...
+      this.disableButtons();
     });
 
     this.input.on("drag", (pointer, gameObject, dragX, dragY) => {
+      if (dragX < 110) dragX = 110;
+      if (dragX > 585) dragX = 585;
+      if (dragY < 90) dragY = 90;
+      if (dragY > 470) dragY = 470;
+      
       gameObject.x = dragX;
       gameObject.y = dragY;
 
       gameObject.data.get("vector").set(dragX, dragY);
+
+      this.build();
     });
 
     this.input.on("dragend", (pointer, gameObject) => {
-      this.buildSlope();
+      this.enableButtons();
+      // this.build();
     });
   }
 
@@ -382,14 +495,34 @@ class Play extends Phaser.Scene {
     this.slope.curve.draw(this.graphics);
   }
 
-  update() {
+  update(time, delta) {
     this.graphics.clear();
 
     this.drawGround();
 
-    // //  Draw t
-    // this.slope.curve.getPoint(this.path.t, this.path.vec);
-    // // console.log(this.path.vec);
+    if (this.runnning && !this.finished) {
+      (this.ball.x > config.SLOPE.POINTS.END.x) && this.stop();
+    }
+
+    this.matter.world.step(delta);
+
+    return;
+
+    // Check it if needing in fps limitation
+    this.acc += delta;
+    while(this.acc >= 16.66) {
+      this.acc -= 16.66;
+
+      this.graphics.clear();
+
+      this.drawGround();
+
+      if (this.runnning && !this.finished) {
+        (this.ball.x > config.SLOPE.POINTS.END.x) && this.stop();
+      }
+
+      this.matter.world.step(16.66);
+    }
   }
 
   disable() {

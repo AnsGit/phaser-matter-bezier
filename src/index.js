@@ -15,6 +15,10 @@ const props = {
     default: "matter",
     matter: {}
   },
+  // fps: {
+  //   target: 30,
+  //   forceSetTimeOut: true
+  // },
   scene: [Play]
 };
 
