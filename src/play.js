@@ -11,7 +11,67 @@ class Play extends Phaser.Scene {
     this.load.image("ball", require("../assets/ball.png"), 40, 40);
   }
 
+  _preset() {
+    const { POINTS, CONTROL } = config.SLOPE;
+
+    // Temp line
+    const line = new Phaser.Geom.Line(
+      POINTS.START.x, POINTS.START.y,
+      POINTS.END.x, POINTS.END.y
+    );
+
+    this._preset = {};
+
+    // Default center point
+    this._preset.points = {
+      center: line.getPoint(0.5),
+    };
+
+    // Default curves points
+    this._preset.curves = [['START', -1], ['END', 1]].map(([type, direction], i) => {
+      let points = {};
+
+      points.control = line.getPoint(0.5 + CONTROL.POINT.OFFSET * direction);
+      
+      if (i === 0) {
+        points.all = [
+            // Start point
+          new Phaser.Math.Vector2(POINTS[type].x, POINTS[type].y),
+          // Control point 0 (fixed)
+          new Phaser.Math.Vector2(POINTS[type].x, POINTS[type].y),
+          // Control point 1 (draggable)
+          new Phaser.Math.Vector2(points.control.x, points.control.y),
+          // End point
+          new Phaser.Math.Vector2(this._preset.points.center.x, this._preset.points.center.y)
+        ];
+
+        points.extreme = points.all[0];
+      }
+      else {
+        points.all = [
+          // Start point
+          new Phaser.Math.Vector2(this._preset.points.center.x, this._preset.points.center.y),
+          // Control point 0 (draggable)
+          new Phaser.Math.Vector2(points.control.x, points.control.y),
+          // Control point 1 (fixed)
+          new Phaser.Math.Vector2(POINTS[type].x, POINTS[type].y),
+          // End point
+          new Phaser.Math.Vector2(POINTS[type].x, POINTS[type].y),
+        ];
+
+        points.extreme = points.all[3];
+      }
+
+      return { points };
+    });
+
+    // Remove temp line
+    this.matter.world.remove(line);
+  }
+
   create() {
+    this._preset();
+
     this.parent = $(`#${this.registry.parent.config.parent}`);
 
     this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 50, true, true, true, true);
@@ -53,47 +113,83 @@ class Play extends Phaser.Scene {
   }
 
   createSlope() {
-    const { POINTS } = config.SLOPE;
-
     this.slope = {
-      curve: new Phaser.Curves.CubicBezier(
-        // Start point
-        new Phaser.Math.Vector2(POINTS.START.x, POINTS.START.y),
-        // Control point
-        ...POINTS.CONTROL.map( p => new Phaser.Math.Vector2(p.x, p.y) ),
-        // End point
-        new Phaser.Math.Vector2(POINTS.END.x, POINTS.END.y)
-      ),
-      interactive: { points: null },
+      curves: _.range(2).map((i) => {
+        const instance = new Phaser.Curves.CubicBezier(
+          ...this._preset.curves[i].points.all.map((p) => {
+            return new Phaser.Math.Vector2(p.x, p.y);
+          })
+        );
+        
+        // Visible points
+        const points = {
+          extreme: this.add.circle(
+            this._preset.curves[i].points.extreme.x,
+            this._preset.curves[i].points.extreme.y,
+            config.SLOPE.POINT.RADIUS,
+            config.SLOPE.COLOR
+          ),
+          control: this.add.circle(
+            this._preset.curves[i].points.control.x,
+            this._preset.curves[i].points.control.y,
+            config.SLOPE.CONTROL.POINT.RADIUS,
+            config.SLOPE.CONTROL.COLOR
+          )
+        };
+
+        points.control
+          .setInteractive()
+          .setData("vector", instance[i === 0 ? 'p2' : 'p1']);
+
+        return { instance, points };
+      }),
+      points: {
+        center: this.add.circle(
+          this._preset.points.center.x,
+          this._preset.points.center.y,
+          config.SLOPE.CONTROL.POINT.RADIUS,
+          config.SLOPE.CONTROL.COLOR
+        )
+      },
+      // interactive: { points: null },
       ground: null,
-      points: [],
+      path: [],
       rects: []
     };
 
-    this.slope.interactive.points = _.range(4).map((i) => {
-      const basePoint = this.slope.curve[`p${i}`];
-      const { x, y } = basePoint;
+    this.slope.points.center
+      .setInteractive()
+      .setData("vector", this.slope.curves.map((c, i) => {
+        return c.instance[i === 0 ? 'p3' : 'p0'];
+      }));
 
-      const isControl = [1, 2].includes(i);
+    console.log(this.slope.curves[0].instance);
+    console.log(this.slope.curves[1].instance);
 
-      let color, radius;
+    // this.slope.interactive.points = _.range(4).map((i) => {
+    //   const basePoint = this.slope.curve[`p${i}`];
+    //   const { x, y } = basePoint;
 
-      if (isControl) {
-        color = config.SLOPE.CONTROL.COLOR;
-        radius = config.SLOPE.CONTROL.POINT.RADIUS;
-      }
-      else {
-        color = config.SLOPE.COLOR;
-        radius = config.SLOPE.POINT.RADIUS;
-      }
+    //   const isControl = [1, 2].includes(i);
 
-      const point = this.add
-        .circle(x, y, radius, color)
-        .setData("vector", basePoint)
-        .setInteractive();
+    //   let color, radius;
 
-      return point;
-    });
+    //   if (isControl) {
+    //     color = config.SLOPE.CONTROL.COLOR;
+    //     radius = config.SLOPE.CONTROL.POINT.RADIUS;
+    //   }
+    //   else {
+    //     color = config.SLOPE.COLOR;
+    //     radius = config.SLOPE.POINT.RADIUS;
+    //   }
+
+    //   const point = this.add
+    //     .circle(x, y, radius, color)
+    //     .setData("vector", basePoint)
+    //     .setInteractive();
+
+    //   return point;
+    // });
 
     // console.log(this.slope.curve.getTangent(0.5));
     // console.log(this.slope.curve.getPoint(0.5));
@@ -109,20 +205,32 @@ class Play extends Phaser.Scene {
   }
 
   resetSlope() {
-    const { POINTS } = config.SLOPE;
+    this.slope.curves.forEach(({ instance, points }, i) => {
+      this._preset.curves[i].points.all.forEach((p, j) => {
+        instance[`p${j}`] = new Phaser.Math.Vector2(p.x, p.y);
+      });
 
-    this.slope.curve.p0 = new Phaser.Math.Vector2(POINTS.START.x, POINTS.START.y);
-    this.slope.curve.p1 = new Phaser.Math.Vector2(POINTS.CONTROL[0].x, POINTS.CONTROL[0].y);
-    this.slope.curve.p2 = new Phaser.Math.Vector2(POINTS.CONTROL[1].x, POINTS.CONTROL[1].y);
-    this.slope.curve.p3 = new Phaser.Math.Vector2(POINTS.END.x, POINTS.END.y);
+      points.extreme.setPosition(
+        this._preset.curves[i].points.extreme.x,
+        this._preset.curves[i].points.extreme.y,
+      );
+      
+      points.control.setPosition(
+        this._preset.curves[i].points.control.x,
+        this._preset.curves[i].points.control.y,
+      );
 
-    this.slope.interactive.points.forEach((point, i) => {
-      const basePoint = this.slope.curve[`p${i}`];
-      const { x, y } = basePoint;
-
-      point.setPosition(x, y);
-      point.setData("vector", basePoint)
+      points.control.setData("vector", instance[i === 0 ? 'p2' : 'p1']);
     });
+
+    this.slope.points.center
+      .setPosition(
+        this._preset.points.center.x,
+        this._preset.points.center.y,
+      )
+      .setData("vector", this.slope.curves.map((c, i) => {
+        return c.instance[i === 0 ? 'p3' : 'p0'];
+      }));
 
     this.buildSlope();
   }
@@ -134,7 +242,10 @@ class Play extends Phaser.Scene {
     const Body = Phaser.Physics.Matter.Matter.Body;
     const Bodies = Phaser.Physics.Matter.Matter.Bodies;
 
-    this.slope.points = this.slope.curve.getPoints(100);
+    this.slope.path = [
+      ...this.slope.curves[0].instance.getPoints(32),
+      ...this.slope.curves[1].instance.getPoints(32)
+    ];
     
     this.slope.ground && this.matter.world.remove(this.slope.ground);
 
@@ -144,7 +255,7 @@ class Play extends Phaser.Scene {
       [
         new Phaser.Math.Vector2(0, config.HEIGHT),
         new Phaser.Math.Vector2(0, POINTS.START.y),
-        ...this.slope.points,
+        ...this.slope.path,
         new Phaser.Math.Vector2(config.WIDTH, POINTS.END.y),
         new Phaser.Math.Vector2(config.WIDTH, config.HEIGHT)
       ],
@@ -164,7 +275,10 @@ class Play extends Phaser.Scene {
     
 
     // 2 WAY
-    this.slope.points = this.slope.curve.getPoints(100);
+    this.slope.path = [
+      ...this.slope.curves[0].instance.getPoints(32),
+      ...this.slope.curves[1].instance.getPoints(32)
+    ];
 
     this.slope.rects.forEach((rect) => {
       rect && this.matter.world.remove(rect);
@@ -173,11 +287,11 @@ class Play extends Phaser.Scene {
     let nextPosition = {};
 
     // Slope rects
-    this.slope.rects = this.slope.points.map(({ x, y }, i) => {
-      if (i === this.slope.points.length - 1) return;
+    this.slope.rects = this.slope.path.map(({ x, y }, i) => {
+      if (i === this.slope.path.length - 1) return;
 
-      nextPosition.x = this.slope.points[i + 1].x;
-      nextPosition.y = this.slope.points[i + 1].y;
+      nextPosition.x = this.slope.path[i + 1].x;
+      nextPosition.y = this.slope.path[i + 1].y;
 
       const distance = Phaser.Math.Distance.Between(nextPosition.x, nextPosition.y, x, y);
       const angle = Phaser.Math.Angle.Between(nextPosition.x, nextPosition.y, x, y);
@@ -231,7 +345,7 @@ class Play extends Phaser.Scene {
   }
 
   buildBall() {
-    const [ p0, p1 ] = this.slope.points.slice(0, 2);
+    const [ p0, p1 ] = this.slope.path.slice(0, 2);
 
     // const p0 = this.slope.curve.getPoint(0.05);
     // const p1 = this.slope.curve.getPoint(0.06);
@@ -354,7 +468,7 @@ class Play extends Phaser.Scene {
   reset() {
     this.runnning = false;
 
-    this.resetSlope();
+    // this.resetSlope();
     this.resetBall();
 
     this.resetCounter('current');
@@ -437,11 +551,9 @@ class Play extends Phaser.Scene {
 
   subscribeSlope() {
     this.input.setDraggable([
-      this.slope.interactive.points[1],
-      this.slope.interactive.points[2]
+      ...this.slope.curves.map( c => c.points.control ),
+      this.slope.points.center
     ]);
-
-    this.input.on
 
     this.input.on("dragstart", (pointer, gameObject) => {
       this.disableButtons();
@@ -456,7 +568,9 @@ class Play extends Phaser.Scene {
       gameObject.x = dragX;
       gameObject.y = dragY;
 
-      gameObject.data.get("vector").set(dragX, dragY);
+      const vector = [].concat( gameObject.data.get("vector") );
+
+      vector.forEach( v => v.set(dragX, dragY) );
 
       this.build();
     });
@@ -472,6 +586,14 @@ class Play extends Phaser.Scene {
     this.subscribeButtons();
   }
 
+  drawSlope() {
+    this.graphics.moveTo(this.slope.path[0].x, this.slope.path[1].y);
+
+    for (var i = 1; i < this.slope.path.length; i++) {
+      this.graphics.lineTo(this.slope.path[i].x, this.slope.path[i].y);
+    }
+  }
+
   drawGround() {
     this.graphics.beginPath();
 
@@ -479,7 +601,7 @@ class Play extends Phaser.Scene {
     this.graphics.lineStyle(8, 'transparent');
 
     // Stroke slope
-    this.slope.curve.draw(this.graphics);
+    this.drawSlope()
 
     // Stroke ground
     this.graphics.lineTo(config.WIDTH, config.SLOPE.POINTS.END.y);
@@ -492,7 +614,7 @@ class Play extends Phaser.Scene {
 
     // Draw slope over the ground
     this.graphics.lineStyle(config.SLOPE.LINE.WIDTH, config.SLOPE.COLOR);
-    this.slope.curve.draw(this.graphics);
+    this.slope.curves.forEach( c =>  c.instance.draw(this.graphics) );
   }
 
   update(time, delta) {

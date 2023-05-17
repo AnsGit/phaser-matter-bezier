@@ -12,18 +12,13 @@ const config = {
     },
     POINTS: {
       START: { x: 82, y: 200 },
-      CONTROL: [
-        { x: 294, y: 265 },
-        { x: 400, y: 296 },
-        // { x: 147, y: 399 },
-        // { x: 355, y: 460 },
-      ],
-      END: { x: 612, y: 360 },
+      END: { x: 612, y: 360 }
     },
     CONTROL: {
       COLOR: '0xFFFFFF',
       POINT: {
-        RADIUS: 12
+        RADIUS: 12,
+        OFFSET: 0.1
       }
     }
   },
