@@ -12,13 +12,23 @@ const config = {
     },
     POINTS: {
       START: { x: 82, y: 200 },
-      END: { x: 612, y: 360 }
+      END: { x: 612, y: 360 },
+      COUNT: 60
     },
     CONTROL: {
       COLOR: '0xFFFFFF',
       POINT: {
-        RADIUS: 12,
+        RADIUS: 8,
         OFFSET: 0.1
+      },
+      LINE: {
+        WIDTH: 2
+      }
+    },
+    DRAG: {
+      AREA: {
+        MIN: { x: 85, y: 84 },
+        MAX: { x: 585, y: 470 },
       }
     }
   },
