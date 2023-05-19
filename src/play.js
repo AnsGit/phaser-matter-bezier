@@ -74,9 +74,11 @@ class Play extends Phaser.Scene {
 
     this.parent = $(`#${this.registry.parent.config.parent}`);
 
-    this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 50, true, true, true, true);
-    this.matter.world.setGravity(0, 1);
+    this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 50, false, false, true, true);
+    this.matter.world.setGravity(config.PHYSICS.GRAVITY.x, config.PHYSICS.GRAVITY.y);
 
+    this.matter.world.runner.isFixed = true;
+    // console.log(this.matter.world.runner);
     this.matter.world.autoUpdate = false;
 
     // console.log(Phaser);
@@ -206,6 +208,8 @@ class Play extends Phaser.Scene {
       this.slope.lines.control[`p${i}`].y = cProps.points.control.y;
     });
 
+    this.updateSlopeCurvesData();
+
     this.buildSlope();
   }
 
@@ -230,6 +234,25 @@ class Play extends Phaser.Scene {
       ...this.slope.curves[0].instance.getPoints(POINTS.COUNT/2),
       ...this.slope.curves[1].instance.getPoints(POINTS.COUNT/2).slice(1)
     ];
+
+    // this.slope.path = [
+    //   ...this.slope.curves[0].instance.getPoints(POINTS.COUNT/2).map((v) => {
+    //     return new Phaser.Math.Vector2(
+    //       parseFloat(v.x.toFixed(2)),
+    //       parseFloat(v.y.toFixed(2))
+    //     )
+    //   }),
+    //   ...this.slope.curves[1].instance.getPoints(POINTS.COUNT/2).slice(1).map((v) => {
+    //     return new Phaser.Math.Vector2(
+    //       parseFloat(v.x.toFixed(2)),
+    //       parseFloat(v.y.toFixed(2))
+    //     )
+    //   })
+    // ];
+
+    // console.log(
+    //   this.slope.curves[0].instance.getPoints(POINTS.COUNT/2)[1]
+    // );
     
     this.slope.ground && this.matter.world.remove(this.slope.ground);
 
@@ -252,6 +275,12 @@ class Play extends Phaser.Scene {
       y: POINTS.START.y + (config.HEIGHT - POINTS.START.y) - this.slope.ground.bounds.max.y + (config.HEIGHT - POINTS.START.y),
       // y: config.HEIGHT - this.slope.ground.bounds.max.y + (config.HEIGHT - POINTS.START.y),
     });
+
+    this.slope.ground.friction = config.PHYSICS.SLOPE.FRICTION;
+    
+    // this.ball.setFrictionAir(config.BALL.PHYSICS.FRICTION_AIR);
+    // this.ball.setBounce(config.BALL.PHYSICS.BOUNCE);
+    // this.ball.setDensity(config.BALL.PHYSICS.DENSITY);
 
     this.matter.world.add(this.slope.ground)
 
@@ -395,20 +424,17 @@ class Play extends Phaser.Scene {
 
   createBall() {
     this.ball = this.matter.add.image(0, 0, "ball", 1);
-    // console.log(this.ball);
+    
+    // this.ball.setCircle(config.BALL.SIZE);
+    this.ball.setPolygon(config.BALL.SIZE, 50);
+    this.ball.setFriction(config.PHYSICS.BALL.FRICTION);
+    this.ball.setFrictionAir(config.PHYSICS.BALL.FRICTION_AIR);
+    this.ball.setBounce(config.PHYSICS.BALL.BOUNCE);
+    this.ball.setDensity(config.PHYSICS.BALL.DENSITY);
 
-    this.ball.setCircle(config.BALL.SIZE);
-    // this.ball.setSlop(20);
-    this.ball.setFriction(0.16);
-    this.ball.setFrictionAir(0.0001);
-    this.ball.setBounce(0.9);
-    // this.ball.setInertia(1000);
-    this.ball.setMass(0.1);
-    this.ball.setDensity(0.0000008);
-    this.ball.setVelocityX(1);
+    const body = this.ball.body;
 
-    // const body = this.ball.body;
-    // this.matter.body.setInertia(body, 0.1);
+    this.matter.body.setInertia(body, config.PHYSICS.BALL.INERTIA);
 
     this.ball.setStatic(true);
   }
@@ -516,7 +542,7 @@ class Play extends Phaser.Scene {
     this.buttons = {
       view: $('<div>', { class: 'buttons' }),
       reset: {
-        view: $('<div>', { class: 'button reset disabled' })
+        view: $('<div>', { class: 'button reset' })
       },
       run: {
         view: $('<div>', { class: 'button run', text: 'запустить мяч' })
@@ -539,15 +565,22 @@ class Play extends Phaser.Scene {
     this.buttons.view.removeClass('disabled');
   }
 
-  reset() {
+  reset(props = {}) {
+    props = {
+      slope: true,
+      ball: true,
+      counter: true,
+      ...props
+    };
+
     this.runnning = false;
 
-    // this.resetSlope();
-    this.resetBall();
+    props.slope && this.resetSlope();
+    props.ball && this.resetBall();
 
-    this.resetCounter('current');
+    props.counter && this.resetCounter('current');
     
-    this.buttons.reset.view.addClass('disabled');
+    // this.buttons.reset.view.addClass('disabled');
     this.buttons.run.view.removeClass('disabled');
     this.input.enabled = true;
   }
@@ -557,13 +590,17 @@ class Play extends Phaser.Scene {
     this.runnning = true;
     this.finished = false;
 
+    // Set x/y-gravity before running
+    this.matter.world.setGravity(config.PHYSICS.GRAVITY.x, config.PHYSICS.GRAVITY.y);
+
     this.runCounter('current');
 
-    this.buttons.reset.view.addClass('disabled');
+    // this.buttons.reset.view.addClass('disabled');
     this.buttons.run.view.addClass('disabled');
     this.input.enabled = false;
 
     this.ball.setStatic(false);
+    // this.ball.setVelocityX(1);
     // this.ball.setVelocityY(5);
     // this.ball.setAngularVelocity(0.1);
 
@@ -580,12 +617,15 @@ class Play extends Phaser.Scene {
     //   console.log(i++);
     // })
     
-    this.buttons.reset.view.removeClass('disabled');
+    // this.buttons.reset.view.removeClass('disabled');
     // console.log('STOPED');
   }
 
   stop() {
     this.finished = true;
+
+    // Reset x-gravity after slope ending
+    this.matter.world.setGravity(0, config.PHYSICS.GRAVITY.y);
 
     this.stopCounter('current');
 
@@ -612,7 +652,8 @@ class Play extends Phaser.Scene {
     this.buttons.reset.view.on('click', (e) => {
       // console.log('RESETED');
 
-      this.reset();
+      // this.reset();
+      this.reset({ slope: false });
     });
 
     // RUN BALL
@@ -743,8 +784,18 @@ class Play extends Phaser.Scene {
   update(time, delta) {
     this.draw();
 
-    if (this.runnning && !this.finished) {
-      (this.ball.x > config.SLOPE.POINTS.END.x) && this.stop();
+    if (this.runnning) {
+      if (!this.finished) {
+        (this.ball.x > config.SLOPE.POINTS.END.x) && this.stop();
+      }
+
+      // Reset if ball have ran beyond the screen bounds
+      if (
+        (this.ball.x > config.WIDTH + config.BALL.SIZE) ||
+        (this.ball.x < -config.BALL.SIZE)
+      ) {
+        this.reset({ slope: false, counter: false });
+      }
     }
 
     this.matter.world.step(delta);
@@ -756,12 +807,18 @@ class Play extends Phaser.Scene {
     while(this.acc >= 16.66) {
       this.acc -= 16.66;
 
-      this.graphics.clear();
-
       this.draw();
 
-      if (this.runnning && !this.finished) {
+      if (!this.finished) {
         (this.ball.x > config.SLOPE.POINTS.END.x) && this.stop();
+      }
+
+      // Reset if ball have ran beyond the screen bounds
+      if (
+        (this.ball.x > config.WIDTH + config.BALL.SIZE) ||
+        (this.ball.x < -config.BALL.SIZE)
+      ) {
+        this.reset({ slope: false, counter: false });
       }
 
       this.matter.world.step(16.66);

@@ -13,7 +13,7 @@ const config = {
     POINTS: {
       START: { x: 82, y: 200 },
       END: { x: 612, y: 360 },
-      COUNT: 60
+      COUNT: 64
     },
     CONTROL: {
       COLOR: '0xFFFFFF',
@@ -28,7 +28,7 @@ const config = {
     DRAG: {
       AREA: {
         MIN: { x: 85, y: 84 },
-        MAX: { x: 585, y: 470 },
+        MAX: { x: 585, y: 490 },
       }
     }
   },
@@ -38,7 +38,20 @@ const config = {
   BALL: {
     SIZE: 20,
     x: 103,
-    y: 200,
+    y: 200
+  },
+  PHYSICS: {
+    GRAVITY: { x: 0, y: 1 },
+    BALL: {
+      FRICTION: 0.1,
+      FRICTION_AIR: 0.0001,
+      BOUNCE: 0.5,
+      DENSITY: 0.0000008,
+      INERTIA: 0.1,
+    },
+    SLOPE: {
+      FRICTION: 0.01
+    }
   }
 };
 
