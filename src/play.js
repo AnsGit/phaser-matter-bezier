@@ -77,8 +77,7 @@ class Play extends Phaser.Scene {
     this.matter.world.setBounds(0, 0, config.WIDTH, config.HEIGHT, 50, false, false, true, true);
     this.matter.world.setGravity(config.PHYSICS.GRAVITY.x, config.PHYSICS.GRAVITY.y);
 
-    this.matter.world.runner.isFixed = true;
-    // console.log(this.matter.world.runner);
+    // this.matter.world.runner.isFixed = true;
     this.matter.world.autoUpdate = false;
 
     // console.log(Phaser);
@@ -87,19 +86,84 @@ class Play extends Phaser.Scene {
     // console.log(this.matter.systems.cache.game.config);
     // console.log(this.matter.systems.cache.game.config.seed);
     // console.log(Phaser.Physics.Matter);
+    // console.log(Phaser.Physics.Matter.Matter.Common.random);
     // console.log(Phaser.Physics.Matter.Matter.Common);
-    // Phaser.Physics.Matter.Matter.Common._seed = 12345678;
 
     this.graphics = this.add.graphics();
 
     this.createSlope();
     this.createBall();
 
+    this.createTitle();
     this.createCounters();
     this.createButtons();
 
     this.build();
     this.subscribe();
+  }
+
+  store() {
+    if (!config.LOCAL_STORAGE) return;
+
+    window.localStorage.matter = JSON.stringify(
+      {
+        slope: {
+          points: {
+            center: {
+              x: this.slope.points.center.x,
+              y: this.slope.points.center.y
+            },
+            control: this.slope.curves.map((c) => {
+              return {
+                x: c.points.control.x,
+                y: c.points.control.y
+              }
+            })
+          }
+        }
+      }
+    );
+  }
+
+  restore() {
+    if (!config.LOCAL_STORAGE) return;
+    if (!window.localStorage.matter) return;
+
+    const state = JSON.parse(window.localStorage.matter);
+
+    this.slope.curves.forEach(({ instance, points }, i) => {
+      let centerPointIndex, controlPointIndex;
+
+      if (i === 0) {
+        [centerPointIndex, controlPointIndex] = [3, 2];
+      }
+      else {
+        [centerPointIndex, controlPointIndex] = [0, 1];
+      }
+
+      instance[`p${centerPointIndex}`].x = state.slope.points.center.x;
+      instance[`p${centerPointIndex}`].y = state.slope.points.center.y;
+
+      instance[`p${controlPointIndex}`].x = state.slope.points.control[i].x;
+      instance[`p${controlPointIndex}`].y = state.slope.points.control[i].y;
+
+      points.control.setPosition(
+        state.slope.points.control[i].x,
+        state.slope.points.control[i].y,
+      );
+    });
+
+    this.slope.points.center.setPosition(
+      state.slope.points.center.x,
+      state.slope.points.center.y,
+    );
+    
+    state.slope.points.control.forEach(({ x, y}, i) => {
+      this.slope.lines.control[`p${i}`].x = x;
+      this.slope.lines.control[`p${i}`].y = y;
+    });
+
+    this.updateSlopeCurvesData();
   }
 
   createSlope() {
@@ -172,6 +236,8 @@ class Play extends Phaser.Scene {
       .setData("type", 'center');
 
     this.updateSlopeCurvesData();
+
+    this.restore();
   }
 
   resetSlope() {
@@ -234,25 +300,6 @@ class Play extends Phaser.Scene {
       ...this.slope.curves[0].instance.getPoints(POINTS.COUNT/2),
       ...this.slope.curves[1].instance.getPoints(POINTS.COUNT/2).slice(1)
     ];
-
-    // this.slope.path = [
-    //   ...this.slope.curves[0].instance.getPoints(POINTS.COUNT/2).map((v) => {
-    //     return new Phaser.Math.Vector2(
-    //       parseFloat(v.x.toFixed(2)),
-    //       parseFloat(v.y.toFixed(2))
-    //     )
-    //   }),
-    //   ...this.slope.curves[1].instance.getPoints(POINTS.COUNT/2).slice(1).map((v) => {
-    //     return new Phaser.Math.Vector2(
-    //       parseFloat(v.x.toFixed(2)),
-    //       parseFloat(v.y.toFixed(2))
-    //     )
-    //   })
-    // ];
-
-    // console.log(
-    //   this.slope.curves[0].instance.getPoints(POINTS.COUNT/2)[1]
-    // );
     
     this.slope.ground && this.matter.world.remove(this.slope.ground);
 
@@ -277,12 +324,8 @@ class Play extends Phaser.Scene {
     });
 
     this.slope.ground.friction = config.PHYSICS.SLOPE.FRICTION;
-    
-    // this.ball.setFrictionAir(config.BALL.PHYSICS.FRICTION_AIR);
-    // this.ball.setBounce(config.BALL.PHYSICS.BOUNCE);
-    // this.ball.setDensity(config.BALL.PHYSICS.DENSITY);
 
-    this.matter.world.add(this.slope.ground)
+    this.matter.world.add(this.slope.ground);
 
     return;
     
@@ -426,14 +469,21 @@ class Play extends Phaser.Scene {
     this.ball = this.matter.add.image(0, 0, "ball", 1);
     
     // this.ball.setCircle(config.BALL.SIZE);
-    this.ball.setPolygon(config.BALL.SIZE, 50);
+    this.ball.setPolygon(config.BALL.SIZE, 70);
     this.ball.setFriction(config.PHYSICS.BALL.FRICTION);
     this.ball.setFrictionAir(config.PHYSICS.BALL.FRICTION_AIR);
     this.ball.setBounce(config.PHYSICS.BALL.BOUNCE);
     this.ball.setDensity(config.PHYSICS.BALL.DENSITY);
 
-    const body = this.ball.body;
+    // // Init auxiliary props
+    // this.ball.collide = {
+    //   body: { id: null },
+    //   timeout: null
+    // };
 
+    // this.ball.direction = { changed: false };
+
+    const body = this.ball.body;
     this.matter.body.setInertia(body, config.PHYSICS.BALL.INERTIA);
 
     this.ball.setStatic(true);
@@ -456,6 +506,16 @@ class Play extends Phaser.Scene {
     const y = p0.y - config.BALL.SIZE * Math.cos(angle);
 
     this.ball.setPosition(x, y);
+    this.ball.body.angle = 0;
+  }
+
+  createTitle() {
+    this.title = {
+      view: $('<div>', { class: 'task-title', html: 'Нарисуй такую форму склона, чтобы мяч скатился по нему за <b>наименьшее</b> время.<br>Для этого нажми на склон и перемещай полученную точку.' })
+    };
+
+
+    this.parent.append(this.title.view);
   }
 
   createCounters() {
@@ -586,7 +646,6 @@ class Play extends Phaser.Scene {
   }
 
   run() {
-    // console.log(this.matter.systems.cache.game.config.seed)
     this.runnning = true;
     this.finished = false;
 
@@ -604,11 +663,19 @@ class Play extends Phaser.Scene {
     // this.ball.setVelocityY(5);
     // this.ball.setAngularVelocity(0.1);
 
-    // let i = 0;
-    // this.ball.setOnCollideEnd((...args) => {
-    //   // console.log(args);
-    //   console.log(i++);
-    //   // console.log(this.ball.body.angularSpeed);
+    // this.ball.setOnCollideEnd((data) => {
+    //   // console.log(data);
+    //   // this.ball.collide.body.id = data.collision.pair.bodyB.id;
+    //   // console.log(this.ball.collide.body.id);
+    //   // clearTimeout(this.ball.collide.timeout);
+
+    //   // this.ball.collide.timeout = setTimeout(
+    //   //   () => {
+    //   //     // this.stop();
+    //   //     // this.reset({ slope: false, counter: false });
+    //   //   },
+    //   //   config.BALL.COLLIDE.TIMEOUT
+    //   // );
     // })
 
     // let i = 0;
@@ -729,6 +796,9 @@ class Play extends Phaser.Scene {
     this.input.on("dragend", (pointer, gameObject) => {
       this.enableButtons();
       this.updateSlopeCurvesData();
+
+      this.store();
+
       // this.build();
     });
   }
@@ -739,7 +809,7 @@ class Play extends Phaser.Scene {
   }
 
   drawSlope() {
-    this.graphics.moveTo(this.slope.path[0].x, this.slope.path[1].y);
+    this.graphics.moveTo(this.slope.path[0].x, this.slope.path[0].y);
 
     for (var i = 1; i < this.slope.path.length; i++) {
       this.graphics.lineTo(this.slope.path[i].x, this.slope.path[i].y);
