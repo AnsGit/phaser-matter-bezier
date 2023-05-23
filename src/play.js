@@ -525,17 +525,13 @@ class Play extends Phaser.Scene {
         view: $('<div>', { class: 'counter best hidden' }),
         title: $('<div>', { class: 'title', text: 'лучшее время' }),
         value: $('<div>', { class: 'value', text: '0.00' }),
-        timestamp: { initial: null, current: null },
-        duration: 0,
-        timeout: null
+        duration: 0
       },
       current: {
         view: $('<div>', { class: 'counter current' }),
         title: $('<div>', { class: 'title', text: 'текущее время' }),
         value: $('<div>', { class: 'value', text: '0.00' }),
-        timestamp: { initial: null, current: null },
-        duration: 0,
-        timeout: null
+        duration: 0
       }
     };
 
@@ -553,48 +549,17 @@ class Play extends Phaser.Scene {
     this.parent.append(this.counters.view);
   }
 
-  runCounter(type = 'current') {
+  updateCounter(type = 'current', delta = 0) {
     const counter = this.counters[type];
 
-    counter.timestamp.initial = new Date().getTime();
-
-    counter.interval = setInterval(() => {
-      counter.timestamp.current = new Date().getTime();
-      this.updateCounter(type);
-    }, 10);
-  }
-
-  updateCounter(type = 'current', timestamp = null) {
-    const counter = this.counters[type];
-
-    if (timestamp === null) {
-      timestamp = counter.timestamp; 
-    }
-    
-    counter.duration = (timestamp.current - timestamp.initial)/1000;
-    
-    counter.timestamp = timestamp;
-    counter.value.text(counter.duration.toFixed(2));
-  }
-
-  stopCounter(type = 'current') {
-    const counter = this.counters[type];
-
-    clearInterval(counter.interval);
-
-    counter.timestamp.current = new Date().getTime();
-    this.updateCounter(type);
+    counter.duration += delta;
+    counter.value.text((counter.duration/1000).toFixed(2));
   }
 
   resetCounter(type = 'current') {
     const counter = this.counters[type];
 
-    clearInterval(counter.interval);
-
-    counter.timestamp.initial = 0;
-    counter.timestamp.current = 0;
     counter.duration = 0;
-
     this.updateCounter(type);
   }
 
@@ -649,10 +614,10 @@ class Play extends Phaser.Scene {
     this.runnning = true;
     this.finished = false;
 
+    this.resetCounter('current');
+
     // Set x/y-gravity before running
     this.matter.world.setGravity(config.PHYSICS.GRAVITY.x, config.PHYSICS.GRAVITY.y);
-
-    this.runCounter('current');
 
     // this.buttons.reset.view.addClass('disabled');
     this.buttons.run.view.addClass('disabled');
@@ -694,8 +659,6 @@ class Play extends Phaser.Scene {
     // Reset x-gravity after slope ending
     this.matter.world.setGravity(0, config.PHYSICS.GRAVITY.y);
 
-    this.stopCounter('current');
-
     const isNewBestResult = (
       !this.saved ||
       (this.counters.current.duration < this.counters.best.duration)
@@ -703,7 +666,8 @@ class Play extends Phaser.Scene {
 
     if (isNewBestResult) {
       this.saved = true;
-      this.updateCounter('best', this.counters.current.timestamp);
+      this.resetCounter('best');
+      this.updateCounter('best', this.counters.current.duration);
     }
 
     this.counters.best.view.removeClass('hidden');
@@ -855,8 +819,12 @@ class Play extends Phaser.Scene {
     this.draw();
 
     if (this.runnning) {
-      if (!this.finished) {
-        (this.ball.x > config.SLOPE.POINTS.END.x) && this.stop();
+        if (!this.finished) {
+          this.updateCounter('current', delta);
+
+        if (this.ball.x > config.SLOPE.POINTS.END.x) {
+          this.stop(delta);
+        };
       }
 
       // Reset if ball have ran beyond the screen bounds
