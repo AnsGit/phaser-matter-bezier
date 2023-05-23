@@ -1,6 +1,7 @@
 import "./styles.css";
 
-import Phaser from "phaser";
+// import Phaser from "phaser";
+import Phaser from "./phaser.js";
 
 import config from "./config.js";
 import Play from "./play.js";
@@ -11,12 +12,13 @@ const props = {
   height: config.HEIGHT,
   backgroundColor: config.BACKGROUND_COLOR,
   parent: "game-container",
+  // forceSestTimeOut: true,
   physics: {
     default: "matter",
     matter: {}
   },
   // fps: {
-  //   target: 30,
+  //   target: 60,
   //   forceSetTimeOut: true
   // },
   scene: [Play]
