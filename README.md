@@ -6,5 +6,8 @@ Created with CodeSandbox
 npm install
 
 
+## Build
+npm run-script build
+
 ## Run
 npm start

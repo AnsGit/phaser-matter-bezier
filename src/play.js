@@ -1,4 +1,5 @@
-import Phaser from "phaser";
+// import Phaser from "phaser";
+import Phaser from "./phaser.js";
 import _ from "underscore";
 import $ from "jquery";
 
