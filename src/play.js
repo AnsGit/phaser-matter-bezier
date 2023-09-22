@@ -106,7 +106,7 @@ class Play extends Phaser.Scene {
   store() {
     if (!config.LOCAL_STORAGE) return;
 
-    window.localStorage.matter = JSON.stringify(
+    window.localStorage['matter-curve'] = JSON.stringify(
       {
         slope: {
           points: {
@@ -128,9 +128,9 @@ class Play extends Phaser.Scene {
 
   restore() {
     if (!config.LOCAL_STORAGE) return;
-    if (!window.localStorage.matter) return;
+    if (!window.localStorage['matter-curve']) return;
 
-    const state = JSON.parse(window.localStorage.matter);
+    const state = JSON.parse(window.localStorage['matter-curve']);
 
     this.slope.curves.forEach(({ instance, points }, i) => {
       let centerPointIndex, controlPointIndex;
