@@ -65,6 +65,7 @@ class Play extends Phaser.Scene {
 
       return { points };
     });
+    console.log(this._preset);
 
     // Remove temp line
     this.matter.world.remove(line);
@@ -91,6 +92,8 @@ class Play extends Phaser.Scene {
     // console.log(Phaser.Physics.Matter.Matter.Common);
 
     this.graphics = this.add.graphics();
+
+    this.frameTime = 0;
 
     this.createSlope();
     this.createBall();
@@ -451,6 +454,8 @@ class Play extends Phaser.Scene {
       p.data.get("vector").set(p.x, p.y);
     });
 
+    console.log(this.slope.curves);
+
     // fix center point position
     const centerPoint = this.slope.points.center;
 
@@ -463,7 +468,7 @@ class Play extends Phaser.Scene {
     this.slope.curves.forEach((c, i) => {
       this.slope.lines.control[`p${i}`].x = c.points.control.x;
       this.slope.lines.control[`p${i}`].y = c.points.control.y;
-    });;
+    });
   }
 
   createBall() {
@@ -817,6 +822,36 @@ class Play extends Phaser.Scene {
   }
 
   update(time, delta) {
+    // this.frameTime += delta;
+
+    // if (this.frameTime > 16.5) {
+    //   this.frameTime -= 16.5;
+
+    //   this.draw();
+
+    //   if (this.runnning) {
+    //       if (!this.finished) {
+    //         this.updateCounter('current', delta);
+
+    //       if (this.ball.x > config.SLOPE.POINTS.END.x) {
+    //         this.stop(delta);
+    //       };
+    //     }
+
+    //     // Reset if ball have ran beyond the screen bounds
+    //     if (
+    //       (this.ball.x > config.WIDTH + config.BALL.SIZE) ||
+    //       (this.ball.x < -config.BALL.SIZE)
+    //     ) {
+    //       this.reset({ slope: false, counter: false });
+    //     }
+    //   }
+
+    //   this.matter.world.step(16.5);
+    // }
+
+    // return;
+
     this.draw();
 
     if (this.runnning) {
@@ -842,22 +877,28 @@ class Play extends Phaser.Scene {
     return;
 
     // Check it if needing in fps limitation
-    this.acc += delta;
-    while(this.acc >= 16.66) {
-      this.acc -= 16.66;
+    this.frameTime += delta;
+    while(this.frameTime >= 16.66) {
+      this.frameTime -= 16.66;
 
       this.draw();
 
-      if (!this.finished) {
-        (this.ball.x > config.SLOPE.POINTS.END.x) && this.stop();
-      }
+      if (this.runnning) {
+        if (!this.finished) {
+          this.updateCounter('current', delta);
 
-      // Reset if ball have ran beyond the screen bounds
-      if (
-        (this.ball.x > config.WIDTH + config.BALL.SIZE) ||
-        (this.ball.x < -config.BALL.SIZE)
-      ) {
-        this.reset({ slope: false, counter: false });
+          if (this.ball.x > config.SLOPE.POINTS.END.x) {
+            this.stop(delta);
+          };
+        }
+
+        // Reset if ball have ran beyond the screen bounds
+        if (
+          (this.ball.x > config.WIDTH + config.BALL.SIZE) ||
+          (this.ball.x < -config.BALL.SIZE)
+        ) {
+          this.reset({ slope: false, counter: false });
+        }
       }
 
       this.matter.world.step(16.66);
